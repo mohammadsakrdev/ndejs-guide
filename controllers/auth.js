@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 
 const bcrybt = require("bcryptjs");
+const { validationResult } = require("express-validator/check");
 
 const User = require("../models/user");
 
@@ -69,26 +70,28 @@ exports.postSignup = (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
   const confirmPassword = req.body.confirmPassword;
-  User.findOne({ email: email })
-    .then(userDoc => {
-      if (userDoc) {
-        req.flash("Error", "Email used already");
-        res.redirect("/signup");
-      }
-      return bcrybt
-        .hash(password, 12)
-        .then(hashedPassword => {
-          const user = new User({
-            email: email,
-            password: hashedPassword,
-            cart: { items: [] }
-          });
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    console.log(errors);
+    return res.status(422).render("auth/signup", {
+      path: "/signup",
+      pageTitle: "Signup",
+      errorMessage: errors.array()[0].msg
+    });
+  }
+  return bcrybt
+    .hash(password, 12)
+    .then(hashedPassword => {
+      const user = new User({
+        email: email,
+        password: hashedPassword,
+        cart: { items: [] }
+      });
 
-          return user.save();
-        })
-        .then(result => {
-          res.redirect("/login");
-        });
+      return user.save();
+    })
+    .then(result => {
+      res.redirect("/login");
     })
     .catch(err => console.log(err));
 };
