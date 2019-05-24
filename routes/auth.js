@@ -10,22 +10,15 @@ router.get("/login", authController.getLogin);
 
 router.get("/signup", authController.getSignup);
 
-router.post("/login", authController.postLogin);
-
-router.post("/logout", authController.postLogout);
-
 router.post(
-  "/signup",
+  "/login",
   [
     check("email")
       .isEmail()
+      .normalizeEmail()
       .withMessage("Enter a valid mail")
       .custom((value, { req }) => {
-        // if (value === "test@test.com") {
-        //   throw new Error("This email is forbidden");
-        // }
-        // return true;
-        returnUser.findOne({ email: value }).then(userDoc => {
+        return User.findOne({ email: value }).then(userDoc => {
           if (userDoc) {
             return Promise.reject("Email used already");
           }
@@ -34,13 +27,41 @@ router.post(
     body("password")
       .isLength({ min: 5 })
       .withMessage("Enter password with at least 5 numbers")
-      .isAlphanumeric(),
-    body("confirmPassword").custom((value, { req }) => {
-      if (value !== req.body.password) {
-        throw new Error("passwords have to match");
-      }
-      return true;
-    })
+      .isAlphanumeric()
+      .trim()
+  ],
+  authController.postLogin
+);
+
+router.post("/logout", authController.postLogout);
+
+router.post(
+  "/signup",
+  [
+    check("email")
+      .isEmail()
+      .normalizeEmail()
+      .withMessage("Enter a valid mail")
+      .custom((value, { req }) => {
+        return User.findOne({ email: value }).then(userDoc => {
+          if (userDoc) {
+            return Promise.reject("Email used already");
+          }
+        });
+      }),
+    body("password")
+      .isLength({ min: 5 })
+      .withMessage("Enter password with at least 5 numbers")
+      .isAlphanumeric()
+      .trim(),
+    body("confirmPassword")
+      .trim()
+      .custom((value, { req }) => {
+        if (value !== req.body.password) {
+          throw new Error("passwords have to match");
+        }
+        return true;
+      })
   ],
   authController.postSignup
 );
